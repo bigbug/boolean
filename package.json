@@ -1,11 +1,17 @@
 {
-  "name": "boolean_js",
+  "name": "boolean-simp",
   "version": "1.0.0",
   "description": "Simplify boolean expressions",
   "author": "Markus Gutbrod <gutbrod.markus@googlemail.com>",
   "license": "MIT",
   "main": "main.js",
   "private": false,
+
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/bigbug/boolean.git"
+  },
+  
   "scripts": {
     "start": "node main.js",
     "test": "mocha"
