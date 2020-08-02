@@ -3,7 +3,10 @@ Function for simplifying boolean expressions. Loosely based on boolean.py from b
 
 ## Install
 
-Will hopefully be soon on npm ...
+Using npm:
+```
+  npm install boolean-simp
+```
 
 ## Usage
 
