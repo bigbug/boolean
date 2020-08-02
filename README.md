@@ -1,6 +1,8 @@
 # boolean.js
 Function for simplifying boolean expressions. Loosely based on boolean.py from bastikr.
 
+![Travis Status](https://api.travis-ci.org/bigbug/boolean.svg?branch=master)
+
 ## Install
 
 Using npm:
