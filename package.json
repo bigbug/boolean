@@ -1,0 +1,19 @@
+{
+  "name": "boolean_js",
+  "version": "1.0.0",
+  "description": "Simplify boolean expressions",
+  "author": "Markus Gutbrod <gutbrod.markus@googlemail.com>",
+  "license": "MIT",
+  "main": "main.js",
+  "private": false,
+  "scripts": {
+    "start": "node main.js",
+    "test": "mocha"
+  },
+  "dependencies": {
+    "lodash": "^4.17.19"
+  },
+  "devDependencies": {
+    "mocha": "^8.1.0"
+  }
+}
