@@ -7,6 +7,7 @@ const impl = require("./../main").impl;
 
 let expr = [
 	//{expr: "a|-a", res: "1"},
+	{expr: "1", res: "1", disj: "1", impl: "1"},
 	{expr: "i|i+a", res: "i"},
 	{expr: "a+i|i", res: "i", disj: "(a+i)|i"},
 	{expr: "(b)+a+(a)+(a+b)", res: "a+b", disj: "a+b"},
@@ -78,7 +79,7 @@ let expr = [
 	}
 })*/;
 
-/*describe('Expressions', function () {
+describe('Expressions', function () {
     expr.map(i=>{
         describe(i.expr, ()=>{
             if(i.res) {
@@ -101,17 +102,21 @@ let expr = [
 			}
         });
     });
-});*/
+});
 
 const lcrTests = [
 	{
 		rules: ["1", "A", "A+B"],
 		lcrs: ["-A", "A+-B", "A+B"]
 	},
-	/*{
+	{
 		rules: ["1"],
 		lcrs: ["1"]
-	}*/
+	},
+	{
+		rules: ["1", "y", "x|x+y"],
+		lcrs: ["-x+-y", "-x+y", "x"]
+	}
 ]
 
 describe('Long code rules', () => {

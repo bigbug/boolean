@@ -466,7 +466,15 @@ function cleanSameLiteral(ors) {
 	})
 }
 
-function cleanTrivialLiterals(ors) {
+function removeOrTrue(ors) {
+	let res = ors
+	
+	res = res.filter(i=>i.length!==1 || get(i, "[0].sym.type")!==TOKEN_TRUE)
+	
+	return res
+}
+
+function cleanOrTrue(ors) {
 	let res = ors
 	
 	let foundOrTrue = false
@@ -479,6 +487,14 @@ function cleanTrivialLiterals(ors) {
 	if(foundOrTrue) {
 		return [[{sym: {type: TOKEN_TRUE}}]]
 	}
+	return res
+}
+
+function cleanTrivialLiterals(ors) {
+	let res = ors
+
+	if(ors.length>1)
+		res = cleanOrTrue(res)
 
 	res = res.filter(and => {
 		let foundAndFalse = false
@@ -493,8 +509,9 @@ function cleanTrivialLiterals(ors) {
 		return true
 	})
 
-	res = res.filter(i => i.length!==1 || get(i, "[0]sym.type")!==TOKEN_FALSE)
+	res = res.filter(i => i.length!==1 || get(i, "[0].sym.type")!==TOKEN_FALSE)
 	res = res.map(i=>{
+		if(i.length===1) return i
 		return i.filter(j => get(j, "sym.type")!==TOKEN_TRUE)
 	})
 
@@ -598,6 +615,16 @@ let cleanImply = (expr) => {
 	return expr.filter((i, idx) => a[idx]===0)
 }
 
+let implies = (a,b) => {
+	let syms = a.map(r=>((r.not)?"-":"")+get(r, "sym.value"))
+	let syms2 = b.map(r=>((r.not)?"-":"")+get(r, "sym.value"))
+	
+	if(syms.filter(r=>!syms2.includes(r)).length===0) {
+		return true
+	}
+	return false
+}
+
 let cleanDuplicates = (ors) => {
 	return uniqWith(ors, (a,b)=>stringify([a])===stringify([b]))
 }
@@ -613,13 +640,16 @@ let lcrCode = (expr) => {
 
 let lcr = (rule, otherRules) => {
 	let rl = lcrCode(rule)
+	if(otherRules.length===0) {
+		return stringify([[{sym: {type: TOKEN_TRUE}}]])
+	}
 	let othr = otherRules.map(e=>lcrCode(e))
 	let literals = []
 	othr.map(i=>i.map(o=>literals.push(o)))
-	literals = cleanTrivialLiterals(literals)
-	rl = cleanTrivialLiterals(rl)
-	if(rl.length===1 && rl[0].length===1 && get(rl[0][0], "sym.type" === TOKEN_TRUE)) {
-		//rl = []
+	literals = removeOrTrue(literals)
+	rl = removeOrTrue(rl)
+	if(rl.length===1 && rl[0].length===1 && get(rl[0][0], "sym.type") === TOKEN_TRUE) {
+		rl = []
 	}
 	
 	rl.map(ij=>{
@@ -628,6 +658,7 @@ let lcr = (rule, otherRules) => {
 			res = cleanDuplicates(res)
 			res = cleanImply(res)
 			return stringify(res) === stringify([ij])
+			//return !implies(ij, kl)
 		})
 	})
 
@@ -637,7 +668,7 @@ let lcr = (rule, otherRules) => {
 
 	let res
 	if(rl.length===0) {
-		res = ltr
+		res = [ltr]
 	} else {
 		res = rl.map(ij=>{
 			return [...ij, ...ltr]
@@ -654,7 +685,7 @@ let lcr = (rule, otherRules) => {
 	return res
 }
 
-console.log(lcr("1", ["A", "A+B"]))
+console.log(lcr("x|x+y", ["1", "y"]))
 
 //console.log(disj("A+B|(C+D+(E|D))"))
 //console.log(disj("-(A+B)"))
