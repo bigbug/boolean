@@ -3,7 +3,7 @@
  * 	Copyright (c) 2009-2020 Sebastian Kraemer, basti.kr@gmail.com and others SPDX-License-Identifier: BSD-2-Clause
  */
 
-const {isEqual, uniqWith, get, sortBy, some} = require("lodash");
+const {isEqual, uniqWith, get, sortBy, some, concat, groupBy, forOwn} = require("lodash");
 
 const TOKEN_AND = 1;
 const TOKEN_OR = 2;
@@ -409,6 +409,124 @@ let simplify = or => {
 	return ors;
 };
 
+function forceDisjunctive(or, not=false) {
+	let res = []
+	or.map(and=>{
+		let orsFromAnd = []
+		and.filter(i=>!isEqual(i,{})).map(an => {
+			if(an.sym) {
+				let symObj = {...an, not: not?!an.not:an.not};
+				if(symObj.not && get(symObj, "sym.type")===TOKEN_TRUE) {
+					symObj.not = false
+					symObj.sym.type = TOKEN_FALSE
+				} else if(symObj.not && get(symObj, "sym.type")===TOKEN_FALSE) {
+					symObj.not = false
+					symObj.sym.type = TOKEN_TRUE
+				}
+				if(orsFromAnd.length===0)
+					orsFromAnd.push([symObj]);
+				else {
+					orsFromAnd.map(a=>{
+						a.push(symObj)
+						return a
+					})
+				}
+			} else if(an.brack) {
+				let brackRes = forceDisjunctive(an.brack, not?!an.not:an.not)
+				if(orsFromAnd.length===0) {
+					orsFromAnd = brackRes
+				} else {
+					let newOrsFromAnd = []
+					brackRes.map(b => {
+						orsFromAnd.map(a=>{
+							newOrsFromAnd.push([...a, ...b])
+						})
+					})
+					orsFromAnd = newOrsFromAnd
+				}
+			} else {
+				throw new Error("Unexpected type");
+			}
+		})
+		res = [...res, ...orsFromAnd]
+	})
+	if(not) {
+		res = [res.map(i=>{
+			return {brack: i.map(j=>[j])}
+		})]
+		res = forceDisjunctive(res)
+	}
+	res = cleanTrivialLiterals(res)
+	return res;
+}
+
+function cleanSameLiteral(ors) {
+	return ors.map(and=>{
+		return uniqWith(and, (i,j)=>(!!i.not==!!j.not && get(i, "sym.value")===get(j, "sym.value")))
+	})
+}
+
+function cleanTrivialLiterals(ors) {
+	let res = ors
+	
+	let foundOrTrue = false
+	res = res.map(r => {
+		if(r.length===1 && get(r, "[0].sym.type")===TOKEN_TRUE) {
+			foundOrTrue = true
+		}
+		return r
+	})
+	if(foundOrTrue) {
+		return [[{sym: {type: TOKEN_TRUE}}]]
+	}
+
+	res = res.filter(and => {
+		let foundAndFalse = false
+		and.map(r => {
+			if(get(r, "sym.type")===TOKEN_FALSE) {
+				foundAndFalse = true
+			}
+		})
+		if(foundAndFalse) {
+			return false
+		}
+		return true
+	})
+
+	res = res.filter(i => i.length!==1 || get(i, "[0]sym.type")!==TOKEN_FALSE)
+	res = res.map(i=>{
+		return i.filter(j => get(j, "sym.type")!==TOKEN_TRUE)
+	})
+
+	if(res.length===0 || res[0].length===0) {
+		res = [[{sym: {type: TOKEN_FALSE}}]]
+	}
+
+	return res
+}
+
+function cleanNotSatisfiableAndInDisj(ors) {
+	return ors.filter(and=>{
+		let good = true;
+		let bla = groupBy(and, i=>get(i, "sym.value"))
+		forOwn(bla, (v)=>{
+			let prev = get(v, "[0].not")
+			v.map(i=>{
+				if(get(i, "not")!=prev) {
+					good = false
+				}
+			})
+		})
+		return good;
+	})
+}
+
+function sortAnds(ors) {
+	return ors.map(and => {
+		return sortBy(and, i=>get(i, "sym.value"))
+	})
+}
+
 let stringify = (or) => {
 	return or.map(and=>{
 		let r = (and.length===1 || or.length===1) ? "" : "(";
@@ -443,4 +561,110 @@ let simp = (expr) => {
 	return stringify(simplify(parse(tokenize(expr))));
 };
 
+let disj = (expr) => {
+	let res = forceDisjunctive(parse(tokenize(expr)));
+	res = cleanNotSatisfiableAndInDisj(res)
+	res = cleanSameLiteral(res)
+	res = sortAnds(res)
+	res = stringify(res)
+	return res;
+}
+
+let impl = (expr) => {
+	let res = forceDisjunctive(parse(tokenize(expr)));
+	res = cleanNotSatisfiableAndInDisj(res)
+	res = cleanSameLiteral(res)
+	res = sortAnds(res)
+	res = cleanDuplicates(res)
+	res = cleanImply(res)
+	res = stringify(res)
+	return res;
+}
+
+let cleanImply = (expr) => {
+	let a = expr.map(()=>0)
+	for(let i=0; i<expr.length; i+=1) {
+		for(let j=0; j<expr.length; j++) {
+			if(i===j) continue
+
+			let syms = expr[i].map(r=>((r.not)?"-":"")+get(r, "sym.value"))
+			let syms2 = expr[j].map(r=>((r.not)?"-":"")+get(r, "sym.value"))
+			
+			if(syms.filter(r=>!syms2.includes(r)).length===0) {
+				a[j]++
+			}
+		}
+	}
+	return expr.filter((i, idx) => a[idx]===0)
+}
+
+let cleanDuplicates = (ors) => {
+	return uniqWith(ors, (a,b)=>stringify([a])===stringify([b]))
+}
+
+let lcrCode = (expr) => {
+	let res = forceDisjunctive(parse(tokenize(expr)));
+	res = cleanNotSatisfiableAndInDisj(res)
+	res = cleanSameLiteral(res)
+	res = sortAnds(res)
+	res = cleanDuplicates(res)
+	return res
+}
+
+let lcr = (rule, otherRules) => {
+	let rl = lcrCode(rule)
+	let othr = otherRules.map(e=>lcrCode(e))
+	let literals = []
+	othr.map(i=>i.map(o=>literals.push(o)))
+	literals = cleanTrivialLiterals(literals)
+	rl = cleanTrivialLiterals(rl)
+	if(rl.length===1 && rl[0].length===1 && get(rl[0][0], "sym.type" === TOKEN_TRUE)) {
+		//rl = []
+	}
+	
+	rl.map(ij=>{
+		literals = literals.filter(kl => {
+			let res = [ij, kl]
+			res = cleanDuplicates(res)
+			res = cleanImply(res)
+			return stringify(res) === stringify([ij])
+		})
+	})
+
+	let ltr = literals.map(i=>{
+		return {not: true, brack: [i]}
+	})
+
+	let res
+	if(rl.length===0) {
+		res = ltr
+	} else {
+		res = rl.map(ij=>{
+			return [...ij, ...ltr]
+		})
+	}
+
+	res = forceDisjunctive(res);
+	res = cleanNotSatisfiableAndInDisj(res)
+	res = cleanSameLiteral(res)
+	res = sortAnds(res)
+	res = cleanDuplicates(res)
+	res = cleanImply(res)
+	res = stringify(res)
+	return res
+}
+
+console.log(lcr("1", ["A", "A+B"]))
+
+//console.log(disj("A+B|(C+D+(E|D))"))
+//console.log(disj("-(A+B)"))
+// -(A+B) = -A | -B
+// -(A|B) = -A + -B
+// -(A|B+C) = -A + -(B+C) = -A + (-B | -C) = -A+-B | -A+-C
+
+exports.tokenize = tokenize;
+exports.parse = parse;
 exports.default = simp;
+exports.disj = disj;
+exports.impl = impl;
+exports.lcr = lcr;
