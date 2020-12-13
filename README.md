@@ -20,15 +20,16 @@ Currently defined tokens:
 * ')': Right bracket
 
 ```
-  import booljs from "boolean";
-  console.log(booljs("a+1+b|0");
+  import {disj, impl} from "boolean-simp";
+  console.log(disj("a+1+b|0"); // a+b
+  console.log(disj("a|a+b")); // a|(a+b)
+  console.log(impl("a|a+b")); // a
 ```
-## Open Tasks/Laws
-Currently not implemente laws from https://booleanpy.readthedocs.io/en/latest/concepts.html#laws:
-* Associativity: x|(y|z) = x|y|z
-* Distributivity: x+(y|z) = x+y|x+z, x|y+z = (x|y)+(x|z)
-* De-Morgan: -(x|y) = (-x)+(-y)
-* Elimination: x+y|x+(-y) = x, (x|y)+(x|(-y)) = x 
+
+## Functions
+* disj(rule): Transforms a rule into disjunctive normal form
+* impl(rule): Uses implications to mitigate terms
+* lcr(rule, Array of rules): Calculate long code rules from a given rule set
 
 ## License
 MIT License
