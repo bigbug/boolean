@@ -20,10 +20,11 @@ Currently defined tokens:
 * ')': Right bracket
 
 ```
-  import {disj, impl} from "boolean-simp";
+  import {disj, impl, lcr} from "boolean-simp";
   console.log(disj("a+1+b|0"); // a+b
   console.log(disj("a|a+b")); // a|(a+b)
   console.log(impl("a|a+b")); // a
+  console.log(lcr("1", ["a+b"])); // -(a+b) = -a | -b
 ```
 
 ## Functions
