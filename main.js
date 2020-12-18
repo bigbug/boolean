@@ -512,7 +512,12 @@ function cleanTrivialLiterals(ors) {
 	res = res.filter(i => i.length!==1 || get(i, "[0].sym.type")!==TOKEN_FALSE)
 	res = res.map(i=>{
 		if(i.length===1) return i
-		return i.filter(j => get(j, "sym.type")!==TOKEN_TRUE)
+		if(i.length<2) return i
+		let a = i.filter(j => get(j, "sym.type")!==TOKEN_TRUE);
+		if(a.length===0) {
+			return [{sym:{type: TOKEN_TRUE}}]
+		}
+		return a;
 	})
 
 	if(res.length===0 || res[0].length===0) {
@@ -726,7 +731,8 @@ let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
 	return res;
 }
 
-console.log(eval("x|x+y", ["x"]));
+console.log(impl("1+1"))
+console.log(eval("-x+-y", [], [], TOKEN_FALSE));
 
 
 

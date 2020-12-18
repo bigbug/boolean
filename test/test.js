@@ -21,6 +21,7 @@ let expr = [
 	//{expr: "a+-a", res: "1"},
 	{expr: "a", res: "a"},
 	{expr: "a|1", res: "1", disj: "1"},
+	{expr: "1+1", disj: "1"},
 	{expr: "a+1", res: "a", disj: "a"},
 	{expr: "a|0", res: "a", disj: "a"},
 	{expr: "a+0", res: "0", disj: "0"},
@@ -146,6 +147,7 @@ const evalTests = [
 	{rule: "x|y", truthy: ['x'], result: "1"},
 	{rule: "-x|y", truthy: ['x'], result: "y"},
 	{rule: "x|y", falsy: ['x'], result: "y"},
+	{rule: "-x+-y", falsy: [], makeOthers: TOKEN_FALSE, result: "1"},
 	{rule: "x|y", falsy: ['x'], makeOthers: TOKEN_FALSE, result: "0"},
 ];
 
