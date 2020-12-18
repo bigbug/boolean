@@ -743,5 +743,6 @@ exports.disj = disj;
 exports.impl = impl;
 exports.lcr = lcr;
 exports.eval = eval;
+exports.evaluate = eval;
 exports.TOKEN_FALSE = TOKEN_FALSE;
 exports.TOKEN_TRUE = TOKEN_TRUE;
