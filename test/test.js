@@ -125,6 +125,18 @@ const lcrTests = [
 	{
 		rules: ["1", "y", "x|x+y"],
 		lcrs: ["-x+-y", "-x+y", "x"]
+	},
+	{
+		rules: ["1", "y", "x+z"],
+		lcrs: ["(-x+-y)|(-y+-z)", "(-x+y)|(y+-z)", "x+-y+z"]
+	},
+	{
+		rules: ["1", "y+z", "x+z"],
+		lcrs: ["(-x+-y)|-z", "-x+y+z", "x+-y+z"]
+	},
+	{
+		rules: ["y+z", "x+z"],
+		lcrs: ["-x+y+z", "x+-y+z"]
 	}
 ]
 

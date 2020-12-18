@@ -769,7 +769,9 @@ let lcr = (rule, otherRules) => {
 			let res = [ij, kl]
 			res = cleanDuplicates(res)
 			res = cleanImply(res)
-			return stringify(res) === stringify([ij])
+			const stra = stringify(res)
+			const strb = stringify([kl])
+			return stra !== strb
 			//return !implies(ij, kl)
 		})
 	})
@@ -838,9 +840,9 @@ let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
 	return res;
 }
 
-console.log(impl("a+(a|b)"))
-//let lcrAnswer = lcr("1", ["A", "A+B"]);
-//console.log(lcrAnswer)
+//console.log(impl("a+(a|b)"))
+let lcrAnswer = lcr("a", ["a+b"]);
+console.log(lcrAnswer)
 //console.log(impl("-(A+(B+(C+-D+-E)))"))
 //console.log(impl("(A+B)|(A+C)"))
 //console.log(impl("-(421+513+(531|365)+-K26+(5XXL+-581L|2XXL)|(K34+(M256|M176)|ME05)+(460|494))|K26)"))
