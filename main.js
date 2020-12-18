@@ -3,7 +3,7 @@
  * 	Copyright (c) 2009-2020 Sebastian Kraemer, basti.kr@gmail.com and others SPDX-License-Identifier: BSD-2-Clause
  */
 
-const {isEqual, uniqWith, get, sortBy, some, concat, groupBy, forOwn} = require("lodash");
+const {isEqual, uniqWith, get, sortBy, some, concat, groupBy, forOwn, uniq, isObject} = require("lodash");
 
 const TOKEN_AND = 1;
 const TOKEN_OR = 2;
@@ -410,6 +410,7 @@ let simplify = or => {
 };
 
 function forceDisjunctive(or, not=false) {
+	console.log("forceDisj");
 	let res = []
 	or.map(and=>{
 		let orsFromAnd = []
@@ -432,6 +433,7 @@ function forceDisjunctive(or, not=false) {
 					})
 				}
 			} else if(an.brack) {
+				
 				let brackRes = forceDisjunctive(an.brack, not?!an.not:an.not)
 				if(orsFromAnd.length===0) {
 					orsFromAnd = brackRes
@@ -439,9 +441,22 @@ function forceDisjunctive(or, not=false) {
 					let newOrsFromAnd = []
 					brackRes.map(b => {
 						orsFromAnd.map(a=>{
-							newOrsFromAnd.push([...a, ...b])
+							b.map(c => {
+								if(!some(a, c))
+									newOrsFromAnd.push(uniq([...a, ...b]))
+							})
+							/*if(!isEqual(a, b)) {
+								let addElement = uniq([...a, ...b]);
+								if(!some(newOrsFromAnd, addElement))
+									newOrsFromAnd.push(addElement)
+							}*/
 						})
+						//newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
 					})
+					if(!isEqual(newOrsFromAnd, cleanSameLiteral(newOrsFromAnd))) {
+						console.log("excess1!")
+					}
+					newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
 					orsFromAnd = newOrsFromAnd
 				}
 			} else {
@@ -449,6 +464,10 @@ function forceDisjunctive(or, not=false) {
 			}
 		})
 		res = [...res, ...orsFromAnd]
+
+		if(!isEqual(res, cleanSameLiteral(res))) {
+			console.log("excess2!")
+		}
 	})
 	if(not) {
 		res = [res.map(i=>{
@@ -457,6 +476,94 @@ function forceDisjunctive(or, not=false) {
 		res = forceDisjunctive(res)
 	}
 	res = cleanTrivialLiterals(res)
+	if(!isEqual(res, cleanSameLiteral(res))) {
+		console.log("excess3!")
+	}
+	return res;
+}
+
+function forceDisjunctive2(or, not=false) {
+	//console.log("forceDisj2");
+	let or2 = or;
+	if(not) {
+		or2 = [or2.map(i=>{
+			return {brack: i.filter(j=>!isEqual(j,{})).map(j=>{
+				if(isObject(j)) {
+					j.not = !j.not
+				} else {
+					j = j.map(k=>{
+						k.not = !k.not
+					})
+				}
+				return [j]
+			})}
+		})]
+		not = false
+	}
+	let res = []
+	or2.map(and=>{
+		let orsFromAnd = []
+		and.filter(i=>!isEqual(i,{})).map(an => {
+			if(an.sym) {
+				let symObj = {...an, not: an.not};
+				if(symObj.not && get(symObj, "sym.type")===TOKEN_TRUE) {
+					symObj.not = false
+					symObj.sym.type = TOKEN_FALSE
+				} else if(symObj.not && get(symObj, "sym.type")===TOKEN_FALSE) {
+					symObj.not = false
+					symObj.sym.type = TOKEN_TRUE
+				}
+				if(orsFromAnd.length===0)
+					orsFromAnd.push([symObj]);
+				else {
+					orsFromAnd.map(a=>{
+						a.push(symObj)
+						return a
+					})
+				}
+			} else if(an.brack) {
+				
+				let brackRes = forceDisjunctive2(an.brack, an.not)
+				if(orsFromAnd.length===0) {
+					orsFromAnd = brackRes
+				} else {
+					let newOrsFromAnd = []
+					brackRes.map(b => {
+						orsFromAnd.map(a=>{
+							/*b.map(c => {
+								if(!some(a, c))
+									newOrsFromAnd.push(uniq([...a, ...b]))
+							})*/
+							let addElement = uniq([...a, ...b]);
+							newOrsFromAnd.push(addElement)
+							/*if(!isEqual(a, b)) {
+								let addElement = uniq([...a, ...b]);
+								if(!some(newOrsFromAnd, addElement))
+									newOrsFromAnd.push(addElement)
+							}*/
+						})
+						//newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
+					})
+					/*if(!isEqual(newOrsFromAnd, cleanSameLiteral(newOrsFromAnd))) {
+						console.log("excess1!")
+					}*/
+					newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
+					orsFromAnd = newOrsFromAnd
+				}
+			} else {
+				throw new Error("Unexpected type");
+			}
+		})
+		res = [...res, ...orsFromAnd]
+
+		/*if(!isEqual(res, cleanSameLiteral(res))) {
+			console.log("excess2!")
+		}*/
+	})
+	res = cleanTrivialLiterals(res)
+	/*f(!isEqual(res, cleanSameLiteral(res))) {
+		console.log("excess3!")
+	}*/
 	return res;
 }
 
@@ -584,7 +691,7 @@ let simp = (expr) => {
 };
 
 let disj = (expr) => {
-	let res = forceDisjunctive(parse(tokenize(expr)));
+	let res = forceDisjunctive2(parse(tokenize(expr)));
 	res = cleanNotSatisfiableAndInDisj(res)
 	res = cleanSameLiteral(res)
 	res = sortAnds(res)
@@ -593,7 +700,7 @@ let disj = (expr) => {
 }
 
 let impl = (expr) => {
-	let res = forceDisjunctive(parse(tokenize(expr)));
+	let res = forceDisjunctive2(parse(tokenize(expr)));
 	res = cleanNotSatisfiableAndInDisj(res)
 	res = cleanSameLiteral(res)
 	res = sortAnds(res)
@@ -635,7 +742,7 @@ let cleanDuplicates = (ors) => {
 }
 
 let lcrCode = (expr) => {
-	let res = forceDisjunctive(parse(tokenize(expr)));
+	let res = forceDisjunctive2(parse(tokenize(expr)));
 	res = cleanNotSatisfiableAndInDisj(res)
 	res = cleanSameLiteral(res)
 	res = sortAnds(res)
@@ -680,7 +787,7 @@ let lcr = (rule, otherRules) => {
 		})
 	}
 
-	res = forceDisjunctive(res);
+	res = forceDisjunctive2(res);
 	res = cleanNotSatisfiableAndInDisj(res)
 	res = cleanSameLiteral(res)
 	res = sortAnds(res)
@@ -719,9 +826,9 @@ let replaceToVal = (ors, truthy = [], falsy = [], makeOthers = null) => {
 
 
 let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
-	let res = forceDisjunctive(parse(tokenize(expr)));
+	let res = forceDisjunctive2(parse(tokenize(expr)));
 	res = replaceToVal(res, truthy, falsy, makeOthers);
-	res = forceDisjunctive(res);
+	res = forceDisjunctive2(res);
 	res = cleanNotSatisfiableAndInDisj(res)
 	res = cleanSameLiteral(res)
 	res = sortAnds(res)
@@ -731,8 +838,14 @@ let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
 	return res;
 }
 
-console.log(impl("1+1"))
-console.log(eval("-x+-y", [], [], TOKEN_FALSE));
+console.log(impl("a+(a|b)"))
+//let lcrAnswer = lcr("1", ["A", "A+B"]);
+//console.log(lcrAnswer)
+//console.log(impl("-(A+(B+(C+-D+-E)))"))
+//console.log(impl("(A+B)|(A+C)"))
+//console.log(impl("-(421+513+(531|365)+-K26+(5XXL+-581L|2XXL)|(K34+(M256|M176)|ME05)+(460|494))|K26)"))
+//onsole.log(impl("(421+513+(531|365)+-K26+((B01+(M256|M176|M177)|ME05)+(5XXL+-512L+-516L+-521L+-526L+-581L|2XXL)|(K34+B01+(M256|M176|M177)|ME05)+(460|494))|K26)"))
+//onsole.log(eval("-x+-y", [], [], TOKEN_FALSE));
 
 
 

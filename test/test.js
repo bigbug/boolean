@@ -70,6 +70,13 @@ let expr = [
 	{expr: "(A+(B+(C+-(D|-E))))", disj: "A+B+C+-D+E"},
 	{expr: "B+A+C", disj: "A+B+C"},
 	{expr: "A|A+B|A+B+C|B+C", impl: "A|(B+C)"},
+	{expr: "A+(B+(C|D|E)|F)", impl: "(A+B+C)|(A+B+D)|(A+B+E)|(A+F)"},
+	{expr: "-a+-(a+b)", impl: "-a"},
+	{expr: "-a+(-a|-b)", impl: "-a"},
+	{expr: "a+(a|b)", impl: "a"},
+	{expr: "a|(a+b)", impl: "a"},
+	{expr: "-(A+(B+(C+-D+-E)))", impl: "-A|-B|-C|D|E"},
+	{expr: "-(J+K+(L|M)+-E+((F+(A|B|C)|D)+(N+-O+-P+-Q+-R+-S|T)|(I+F+(A|B|C)|D)+(G|H))|E)", impl: "(-E+-J)|(-E+-K)|(-E+-L+-M)|(-D+-E+-I+-N+-T)|(-D+-E+-I+O+-T)|(-D+-E+-I+P+-T)|(-D+-E+-I+Q+-T)|(-D+-E+-I+R+-T)|(-D+-E+-I+S+-T)|(-D+-E+-F)|(-A+-B+-C+-D+-E)|(-E+-G+-H+-N+-T)|(-E+-G+-H+O+-T)|(-E+-G+-H+P+-T)|(-E+-G+-H+Q+-T)|(-E+-G+-H+R+-T)|(-E+-G+-H+S+-T)"},
 
 	//{expr: "M654+-(O41+M256)", res: "M654+(-O41|-M256)", disj: "M654-O41|M654-M256"}
 ];
