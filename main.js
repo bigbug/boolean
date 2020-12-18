@@ -840,9 +840,11 @@ let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
 	return res;
 }
 
+let evalAnswer = eval("-A", ['A'])
+console.log(evalAnswer)
 //console.log(impl("a+(a|b)"))
-let lcrAnswer = lcr("a", ["a+b"]);
-console.log(lcrAnswer)
+//let lcrAnswer = lcr("a", ["a+b"]);
+//console.log(lcrAnswer)
 //console.log(impl("-(A+(B+(C+-D+-E)))"))
 //console.log(impl("(A+B)|(A+C)"))
 //console.log(impl("-(421+513+(531|365)+-K26+(5XXL+-581L|2XXL)|(K34+(M256|M176)|ME05)+(460|494))|K26)"))

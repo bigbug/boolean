@@ -168,6 +168,10 @@ const evalTests = [
 	{rule: "x|y", falsy: ['x'], result: "y"},
 	{rule: "-x+-y", falsy: [], makeOthers: TOKEN_FALSE, result: "1"},
 	{rule: "x|y", falsy: ['x'], makeOthers: TOKEN_FALSE, result: "0"},
+	//{rule: "-(J+K+(L|M)+-E+((F+(A|B|C)|D)+(N+-O+-P+-Q+-R+-S|T)|(I+F+(A|B|C)|D)+(G|H))|E)", truth: ['D', 'G', 'K'], falsy: ['E'], result: "a"},
+	{rule: "-(A+B|(B+C)+(D|(F+G)))", truthy: ['A'], falsy: [], result: "-B"},
+	{rule: "-(A+B|C)", truthy: ['A'], result: "-B+-C"},
+	{rule: "-A", truthy: ['A'], result: "0"}
 ];
 
 describe('Eval', () => {
