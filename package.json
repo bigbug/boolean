@@ -1,6 +1,6 @@
 {
   "name": "boolean-simp",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Simplify boolean expressions",
   "author": "Markus Gutbrod <gutbrod.markus@googlemail.com>",
   "license": "MIT",

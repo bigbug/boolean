@@ -1,5 +1,6 @@
 var assert = require('assert');
-const { lcr } = require('../main');
+const { lcr, TOKEN_FALSE, eval } = require('../main');
+const { get } = require("lodash");
 
 const simp = require("./../main").default;
 const disj = require("./../main").disj;
@@ -138,5 +139,21 @@ describe('Long code rules', () => {
 				assert.equal(res, exp)
 			})
 		}
+	})
+})
+
+const evalTests = [
+	{rule: "x|y", truthy: ['x'], result: "1"},
+	{rule: "-x|y", truthy: ['x'], result: "y"},
+	{rule: "x|y", falsy: ['x'], result: "y"},
+	{rule: "x|y", falsy: ['x'], makeOthers: TOKEN_FALSE, result: "0"},
+];
+
+describe('Eval', () => {
+	evalTests.map(t => {
+		it("eval: " + t.rule + ": " + JSON.stringify(t), () => {
+			let res = eval(t.rule, get(t, "truthy", []), get(t, "falsy", []), get(t, "makeOthers", null));
+			assert.equal(res, t.result);
+		})
 	})
 })

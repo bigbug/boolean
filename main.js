@@ -685,7 +685,50 @@ let lcr = (rule, otherRules) => {
 	return res
 }
 
-console.log(lcr("x|x+y", ["1", "y"]))
+let replaceToVal = (ors, truthy = [], falsy = [], makeOthers = null) => {
+	let res = ors.map(and => {
+		return and.map(el => {
+			if(el && get(el, "sym.type")===TOKEN_SYMBOL) {
+				let sym = get(el, "sym.value");
+				let not = get(el, "not", false)
+				if(truthy.includes(sym)) {
+					return {not, sym: {type: TOKEN_TRUE}}
+				} else if(falsy.includes(sym)) {
+					return {not, sym: {type: TOKEN_FALSE}}
+				} else if(makeOthers) {
+					if(makeOthers===TOKEN_TRUE) {
+						return {not, sym: {type: TOKEN_TRUE}}
+					} else if(makeOthers===TOKEN_FALSE) {
+						return {not, sym: {type: TOKEN_FALSE}}
+					}
+				}
+			} else if(el && el.brack) {
+				return replaceToVal(el.brack, truthy, falsy, makeOthers)
+			}
+			return el
+		}
+		)
+	})
+	return res;
+}
+
+
+let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
+	let res = forceDisjunctive(parse(tokenize(expr)));
+	res = replaceToVal(res, truthy, falsy, makeOthers);
+	res = forceDisjunctive(res);
+	res = cleanNotSatisfiableAndInDisj(res)
+	res = cleanSameLiteral(res)
+	res = sortAnds(res)
+	res = cleanDuplicates(res)
+	res = cleanImply(res)
+	res = stringify(res)
+	return res;
+}
+
+console.log(eval("x|x+y", ["x"]));
+
+
 
 //console.log(disj("A+B|(C+D+(E|D))"))
 //console.log(disj("-(A+B)"))
@@ -699,3 +742,6 @@ exports.default = simp;
 exports.disj = disj;
 exports.impl = impl;
 exports.lcr = lcr;
+exports.eval = eval;
+exports.TOKEN_FALSE = TOKEN_FALSE;
+exports.TOKEN_TRUE = TOKEN_TRUE;
