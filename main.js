@@ -116,9 +116,6 @@ const parse = (tok) => {
 
 	let brackets = [{or, and}];
 
-	//let ors = [or];
-	//let ands = [];
-
 	tok.map(({token, tok, position}) => {
 		if(prev_token) {
 			if(is_sym(prev_token.token) && is_sym(token)) {
@@ -135,7 +132,6 @@ const parse = (tok) => {
 		prev_token = {token, tok, position};
 
 		if(token===TOKEN_NOT) {
-			// Imitate and for "a-a"
 			if(exp.sym) {
 				exp = {};
 				and.push(exp);
@@ -162,6 +158,9 @@ const parse = (tok) => {
 			exp.brack = or;
 			exp = newExp;
 		} else if(token===TOKEN_RPAR) {
+			if(brackets.length===1) {
+				throw new Error(PARSE_UNBALANCED_CLOSING_PARENS);
+			}
 			let obj = brackets.pop();
 			and = obj.and;
 			or = obj.or;
@@ -169,6 +168,9 @@ const parse = (tok) => {
 			and.push(exp);
 		}
 	});
+	if(brackets.length>1) {
+		throw new Error(PARSE_UNBALANCED_CLOSING_PARENS);
+	}
 	return or;
 };
 
@@ -409,81 +411,7 @@ let simplify = or => {
 	return ors;
 };
 
-function forceDisjunctive(or, not=false) {
-	console.log("forceDisj");
-	let res = []
-	or.map(and=>{
-		let orsFromAnd = []
-		and.filter(i=>!isEqual(i,{})).map(an => {
-			if(an.sym) {
-				let symObj = {...an, not: not?!an.not:an.not};
-				if(symObj.not && get(symObj, "sym.type")===TOKEN_TRUE) {
-					symObj.not = false
-					symObj.sym.type = TOKEN_FALSE
-				} else if(symObj.not && get(symObj, "sym.type")===TOKEN_FALSE) {
-					symObj.not = false
-					symObj.sym.type = TOKEN_TRUE
-				}
-				if(orsFromAnd.length===0)
-					orsFromAnd.push([symObj]);
-				else {
-					orsFromAnd.map(a=>{
-						a.push(symObj)
-						return a
-					})
-				}
-			} else if(an.brack) {
-				
-				let brackRes = forceDisjunctive(an.brack, not?!an.not:an.not)
-				if(orsFromAnd.length===0) {
-					orsFromAnd = brackRes
-				} else {
-					let newOrsFromAnd = []
-					brackRes.map(b => {
-						orsFromAnd.map(a=>{
-							b.map(c => {
-								if(!some(a, c))
-									newOrsFromAnd.push(uniq([...a, ...b]))
-							})
-							/*if(!isEqual(a, b)) {
-								let addElement = uniq([...a, ...b]);
-								if(!some(newOrsFromAnd, addElement))
-									newOrsFromAnd.push(addElement)
-							}*/
-						})
-						//newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
-					})
-					if(!isEqual(newOrsFromAnd, cleanSameLiteral(newOrsFromAnd))) {
-						console.log("excess1!")
-					}
-					newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
-					orsFromAnd = newOrsFromAnd
-				}
-			} else {
-				throw new Error("Unexpected type");
-			}
-		})
-		res = [...res, ...orsFromAnd]
-
-		if(!isEqual(res, cleanSameLiteral(res))) {
-			console.log("excess2!")
-		}
-	})
-	if(not) {
-		res = [res.map(i=>{
-			return {brack: i.map(j=>[j])}
-		})]
-		res = forceDisjunctive(res)
-	}
-	res = cleanTrivialLiterals(res)
-	if(!isEqual(res, cleanSameLiteral(res))) {
-		console.log("excess3!")
-	}
-	return res;
-}
-
 function forceDisjunctive2(or, not=false) {
-	//console.log("forceDisj2");
 	let or2 = or;
 	if(not) {
 		or2 = [or2.map(i=>{
@@ -530,23 +458,10 @@ function forceDisjunctive2(or, not=false) {
 					let newOrsFromAnd = []
 					brackRes.map(b => {
 						orsFromAnd.map(a=>{
-							/*b.map(c => {
-								if(!some(a, c))
-									newOrsFromAnd.push(uniq([...a, ...b]))
-							})*/
 							let addElement = uniq([...a, ...b]);
 							newOrsFromAnd.push(addElement)
-							/*if(!isEqual(a, b)) {
-								let addElement = uniq([...a, ...b]);
-								if(!some(newOrsFromAnd, addElement))
-									newOrsFromAnd.push(addElement)
-							}*/
 						})
-						//newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
 					})
-					/*if(!isEqual(newOrsFromAnd, cleanSameLiteral(newOrsFromAnd))) {
-						console.log("excess1!")
-					}*/
 					newOrsFromAnd = cleanSameLiteral(newOrsFromAnd)
 					orsFromAnd = newOrsFromAnd
 				}
@@ -555,15 +470,8 @@ function forceDisjunctive2(or, not=false) {
 			}
 		})
 		res = [...res, ...orsFromAnd]
-
-		/*if(!isEqual(res, cleanSameLiteral(res))) {
-			console.log("excess2!")
-		}*/
 	})
 	res = cleanTrivialLiterals(res)
-	/*f(!isEqual(res, cleanSameLiteral(res))) {
-		console.log("excess3!")
-	}*/
 	return res;
 }
 
@@ -839,25 +747,6 @@ let eval = (expr, truthy = [], falsy= [], makeOthers = null) => {
 	res = stringify(res)
 	return res;
 }
-
-let evalAnswer = eval("-A", ['A'])
-console.log(evalAnswer)
-//console.log(impl("a+(a|b)"))
-//let lcrAnswer = lcr("a", ["a+b"]);
-//console.log(lcrAnswer)
-//console.log(impl("-(A+(B+(C+-D+-E)))"))
-//console.log(impl("(A+B)|(A+C)"))
-//console.log(impl("-(421+513+(531|365)+-K26+(5XXL+-581L|2XXL)|(K34+(M256|M176)|ME05)+(460|494))|K26)"))
-//onsole.log(impl("(421+513+(531|365)+-K26+((B01+(M256|M176|M177)|ME05)+(5XXL+-512L+-516L+-521L+-526L+-581L|2XXL)|(K34+B01+(M256|M176|M177)|ME05)+(460|494))|K26)"))
-//onsole.log(eval("-x+-y", [], [], TOKEN_FALSE));
-
-
-
-//console.log(disj("A+B|(C+D+(E|D))"))
-//console.log(disj("-(A+B)"))
-// -(A+B) = -A | -B
-// -(A|B) = -A + -B
-// -(A|B+C) = -A + -(B+C) = -A + (-B | -C) = -A+-B | -A+-C
 
 exports.tokenize = tokenize;
 exports.parse = parse;

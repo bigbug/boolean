@@ -1,5 +1,5 @@
 var assert = require('assert');
-const { lcr, TOKEN_FALSE, eval } = require('../main');
+const { lcr, TOKEN_FALSE, eval, parse, tokenize } = require('../main');
 const { get } = require("lodash");
 
 const simp = require("./../main").default;
@@ -7,7 +7,6 @@ const disj = require("./../main").disj;
 const impl = require("./../main").impl;
 
 let expr = [
-	//{expr: "a|-a", res: "1"},
 	{expr: "1", res: "1", disj: "1", impl: "1"},
 	{expr: "i|i+a", res: "i"},
 	{expr: "a+i|i", res: "i", disj: "(a+i)|i"},
@@ -18,7 +17,6 @@ let expr = [
 	{expr: "a+b+a+(c|1)|(d+0)|(b)+a+(a)+(a+b)", res: "a+b"},
 	{expr: "(b)+a+(a)+(a+b)", res: "a+b"},
 	{expr: "a|(-a)", res: "1"},
-	//{expr: "a+-a", res: "1"},
 	{expr: "a", res: "a"},
 	{expr: "a|1", res: "1", disj: "1"},
 	{expr: "1+1", disj: "1"},
@@ -55,17 +53,16 @@ let expr = [
 	{expr: "(a+b+(c+(d+(e+f+g+(h+(i))))|i))", res: "a+b+i"},
 	{expr: "(a+b+(a-b))", res: "0"},
 	{expr: "(a+b+(a-b))|(a+b)", res: "a+b"},
-	{expr: "(C213+FV+1)|C205+FC|(C205+FW+M265+(801/802))", res: "(C213+FV)|(C205+FC)|(C205+FW+M265+(801|802))"},
-	{expr: "M654+(O41|M256)", res: "M654+(O41|M256)", disj: "(M654+O41)|(M256+M654)"},
+	{expr: "B+(C|A)", res: "B+(C|A)", disj: "(B+C)|(A+B)"},
 	
-	{expr: "M654+-(-O41+M256)", disj: "(M654+O41)|(-M256+M654)"},
-	{expr: "M654+O42+(O41|M256)", disj: "(M654+O41+O42)|(M256+M654+O42)"},
+	{expr: "B+-(-C+A)", disj: "(B+C)|(-A+B)"},
+	{expr: "B+D+(C|A)", disj: "(B+C+D)|(A+B+D)"},
 	{expr: "(A|B)+(C|D)", disj: "(A+C)|(B+C)|(A+D)|(B+D)"},
 	{expr: "(A|B)+(C+-A)", disj: "-A+B+C"},
 	{expr: "(A|B)+(C|-A)", disj: "(A+C)|(B+C)|(-A+B)"},
-	{expr: "M654|M654+801", disj: "M654|(801+M654)", impl: "M654"},
-	{expr: "M654|(M654+801)", disj: "M654|(801+M654)"},
-	{expr: "((M654))|((((M654+801))))", disj: "M654|(801+M654)"},
+	{expr: "B|B+A", disj: "B|(A+B)", impl: "B"},
+	{expr: "B|(B+A)", disj: "B|(A+B)"},
+	{expr: "((B))|((((B+A))))", disj: "B|(A+B)"},
 	{expr: "(A+(B+(C+-(D+-E))))", disj: "(A+B+C+-D)|(A+B+C+E)"},
 	{expr: "(A+(B+(C+-(D|-E))))", disj: "A+B+C+-D+E"},
 	{expr: "B+A+C", disj: "A+B+C"},
@@ -77,16 +74,16 @@ let expr = [
 	{expr: "a|(a+b)", impl: "a"},
 	{expr: "-(A+(B+(C+-D+-E)))", impl: "-A|-B|-C|D|E"},
 	{expr: "-(J+K+(L|M)+-E+((F+(A|B|C)|D)+(N+-O+-P+-Q+-R+-S|T)|(I+F+(A|B|C)|D)+(G|H))|E)", impl: "(-E+-J)|(-E+-K)|(-E+-L+-M)|(-D+-E+-I+-N+-T)|(-D+-E+-I+O+-T)|(-D+-E+-I+P+-T)|(-D+-E+-I+Q+-T)|(-D+-E+-I+R+-T)|(-D+-E+-I+S+-T)|(-D+-E+-F)|(-A+-B+-C+-D+-E)|(-E+-G+-H+-N+-T)|(-E+-G+-H+O+-T)|(-E+-G+-H+P+-T)|(-E+-G+-H+Q+-T)|(-E+-G+-H+R+-T)|(-E+-G+-H+S+-T)"},
-
-	//{expr: "M654+-(O41+M256)", res: "M654+(-O41|-M256)", disj: "M654-O41|M654-M256"}
 ];
-/*expr.map(i=>{
-	console.log("check " + i.expr);
-	let res = simp(i.expr);
-	if(res!==i.res) {
-		console.log("ERR: " + i.expr + " resolves to " + res + " instead of "+i.res);
-	}
-})*/;
+
+describe('Parse', function() {
+	it("(a+b+(c|e)", () => {
+		assert.throws(()=>parse(tokenize("(a+b+(c|e)")))
+	})
+	it("(a+b))+(c|e)", () => {
+		assert.throws(()=>parse(tokenize("(a+b))+(c|e)")))
+	})
+})
 
 describe('Expressions', function () {
     expr.map(i=>{
@@ -149,13 +146,8 @@ describe('Long code rules', () => {
 				if(i===j) continue
 				rules.push(t.rules[j])
 			}
-			//console.log(i)
 			let res = lcr(t.rules[i], rules)
-			//console.log(res)
 			it("LCR: " + t.rules[i] + JSON.stringify(rules), ()=>{
-				//console.log(res)
-				//console.log(i)
-				//console.log(exp)
 				assert.equal(res, exp)
 			})
 		}
@@ -168,7 +160,6 @@ const evalTests = [
 	{rule: "x|y", falsy: ['x'], result: "y"},
 	{rule: "-x+-y", falsy: [], makeOthers: TOKEN_FALSE, result: "1"},
 	{rule: "x|y", falsy: ['x'], makeOthers: TOKEN_FALSE, result: "0"},
-	//{rule: "-(J+K+(L|M)+-E+((F+(A|B|C)|D)+(N+-O+-P+-Q+-R+-S|T)|(I+F+(A|B|C)|D)+(G|H))|E)", truth: ['D', 'G', 'K'], falsy: ['E'], result: "a"},
 	{rule: "-(A+B|(B+C)+(D|(F+G)))", truthy: ['A'], falsy: [], result: "-B"},
 	{rule: "-(A+B|C)", truthy: ['A'], result: "-B+-C"},
 	{rule: "-A", truthy: ['A'], result: "0"}
