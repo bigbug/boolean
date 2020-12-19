@@ -20,17 +20,19 @@ Currently defined tokens:
 * ')': Right bracket
 
 ```
-  import {disj, impl, lcr} from "boolean-simp";
+  import {disj, impl, lcr, evaluate} from "boolean-simp";
   console.log(disj("a+1+b|0"); // a+b
   console.log(disj("a|a+b")); // a|(a+b)
   console.log(impl("a|a+b")); // a
   console.log(lcr("1", ["a+b"])); // -(a+b) = -a | -b
+  console.log(evaluate("a+b", ["a"], [])); // b
 ```
 
 ## Functions
 * disj(rule): Transforms a rule into disjunctive normal form
 * impl(rule): Uses implications to mitigate terms
 * lcr(rule, Array of rules): Calculate long code rules from a given rule set
+* evaluate(rule, Array of truthy literals, Array of falsy literals, MakeOthers = null|TOKEN_FALSE|TOKEN_TRUE): Evaluates and/or simplifies the rule given the truthy/falsy literals. The parameter MakeOthers can be used for flagging literals which are neither in the truthy array nor in the falsy array.
 
 ## License
 MIT License
