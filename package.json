@@ -1,25 +1,23 @@
 {
   "name": "boolean-simp",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Simplify boolean expressions",
   "author": "Markus Gutbrod <gutbrod.markus@googlemail.com>",
   "license": "MIT",
   "main": "main.js",
   "private": false,
-
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/bigbug/boolean.git"
+    "type": "git",
+    "url": "https://github.com/bigbug/boolean.git"
   },
-  
   "scripts": {
     "start": "node main.js",
     "test": "mocha"
   },
   "dependencies": {
-    "lodash": "^4.17.19"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "mocha": "^8.1.0"
+    "mocha": "^8.3.2"
   }
 }
